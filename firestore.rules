@@ -1,0 +1,366 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Global Safety Net: Default-deny catch-all
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // --- Primitive Helpers ---
+    function isValidId(id) {
+      return id is string && id.size() >= 1 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isVerifiedUser() {
+      return isSignedIn() && request.auth.token.email_verified == true;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isStringBetween(val, minLen, maxLen) {
+      return val is string && val.size() >= minLen && val.size() <= maxLen;
+    }
+
+    // --- Validation Blueprints ---
+    function isValidMusician(data) {
+      return data.keys().hasAll([
+        'ownerId', 'name', 'stageName', 'region', 'macroRegion',
+        'genres', 'instruments', 'experienceLevel', 'collabFormat',
+        'availability', 'bio', 'dawSetup', 'lookingFor', 'avatarUrl',
+        'openToCrossNiche', 'isPublished', 'createdAt', 'updatedAt'
+      ]) &&
+      data.keys().hasOnly([
+        'ownerId', 'name', 'stageName', 'region', 'macroRegion',
+        'genres', 'instruments', 'experienceLevel', 'collabFormat',
+        'availability', 'bio', 'dawSetup', 'lookingFor', 'avatarUrl',
+        'openToCrossNiche', 'isPublished', 'createdAt', 'updatedAt'
+      ]) &&
+      isValidId(data.ownerId) &&
+      isStringBetween(data.name, 2, 80) &&
+      isStringBetween(data.stageName, 2, 80) &&
+      isStringBetween(data.region, 2, 60) &&
+      data.macroRegion in ['Norte', 'Nordeste', 'Centro-Oeste', 'Sudeste', 'Sul', 'Remoto / Global'] &&
+      data.genres is list && data.genres.size() >= 1 && data.genres.size() <= 6 &&
+      data.genres[0] is string && data.genres[0].size() >= 1 && data.genres[0].size() <= 40 &&
+      data.instruments is list && data.instruments.size() >= 1 && data.instruments.size() <= 6 &&
+      data.instruments[0] is string && data.instruments[0].size() >= 1 && data.instruments[0].size() <= 40 &&
+      data.experienceLevel in ['Emergente', 'Intermediário', 'Profissional', 'Produtor / Diretor'] &&
+      data.collabFormat in ['Remoto', 'Presencial', 'Híbrido'] &&
+      isStringBetween(data.availability, 2, 80) &&
+      isStringBetween(data.bio, 10, 500) &&
+      isStringBetween(data.dawSetup, 2, 120) &&
+      isStringBetween(data.lookingFor, 2, 200) &&
+      data.avatarUrl is string && data.avatarUrl.size() <= 300 &&
+      data.openToCrossNiche is bool &&
+      data.isPublished is bool &&
+      data.createdAt is timestamp &&
+      data.updatedAt is timestamp;
+    }
+
+    function isValidPrivateUser(data) {
+      return data.keys().hasAll(['uid', 'email', 'updatedAt']) &&
+      data.keys().hasOnly(['uid', 'email', 'displayName', 'updatedAt']) &&
+      isValidId(data.uid) &&
+      isStringBetween(data.email, 3, 160) &&
+      (!('displayName' in data) || isStringBetween(data.displayName, 1, 80)) &&
+      data.updatedAt is timestamp;
+    }
+
+    function isValidConversation(data) {
+      return data.keys().hasAll([
+        'creatorId', 'participantIds', 'title', 'lastMessageText', 'createdAt', 'updatedAt'
+      ]) &&
+      data.keys().hasOnly([
+        'creatorId', 'participantIds', 'title', 'lastMessageText', 'createdAt', 'updatedAt'
+      ]) &&
+      isValidId(data.creatorId) &&
+      data.participantIds is list &&
+      data.participantIds.size() >= 2 &&
+      data.participantIds.size() <= 5 &&
+      data.participantIds[0] is string && data.participantIds[0].size() >= 1 && data.participantIds[0].size() <= 128 &&
+      isStringBetween(data.title, 2, 120) &&
+      data.lastMessageText is string && data.lastMessageText.size() <= 500 &&
+      data.createdAt is timestamp &&
+      data.updatedAt is timestamp;
+    }
+
+    function isValidMessage(data) {
+      return data.keys().hasAll([
+        'conversationId', 'senderId', 'senderName', 'participantIds', 'body', 'createdAt'
+      ]) &&
+      data.keys().hasOnly([
+        'conversationId', 'senderId', 'senderName', 'participantIds', 'body', 'emailedToGmail', 'createdAt'
+      ]) &&
+      isValidId(data.conversationId) &&
+      isValidId(data.senderId) &&
+      isStringBetween(data.senderName, 1, 80) &&
+      data.participantIds is list &&
+      data.participantIds.size() >= 2 &&
+      data.participantIds.size() <= 5 &&
+      data.participantIds[0] is string && data.participantIds[0].size() >= 1 && data.participantIds[0].size() <= 128 &&
+      isStringBetween(data.body, 1, 2000) &&
+      (!('emailedToGmail' in data) || data.emailedToGmail is bool) &&
+      data.createdAt is timestamp;
+    }
+
+    function isValidSession(data) {
+      return data.keys().hasAll([
+        'hostId', 'hostName', 'participantIds', 'participantNames',
+        'title', 'format', 'scheduledAt', 'durationMinutes', 'status',
+        'meetUri', 'notes', 'createdAt', 'updatedAt'
+      ]) &&
+      data.keys().hasOnly([
+        'hostId', 'hostName', 'participantIds', 'participantNames',
+        'title', 'format', 'scheduledAt', 'durationMinutes', 'status',
+        'meetUri', 'notes', 'createdAt', 'updatedAt'
+      ]) &&
+      isValidId(data.hostId) &&
+      isStringBetween(data.hostName, 1, 80) &&
+      data.participantIds is list && data.participantIds.size() >= 1 && data.participantIds.size() <= 10 &&
+      data.participantIds[0] is string && data.participantIds[0].size() >= 1 && data.participantIds[0].size() <= 128 &&
+      data.participantNames is list && data.participantNames.size() >= 1 && data.participantNames.size() <= 10 &&
+      data.participantNames[0] is string && data.participantNames[0].size() >= 1 && data.participantNames[0].size() <= 80 &&
+      isStringBetween(data.title, 2, 120) &&
+      data.format in ['Remota (Google Meet)', 'Presencial', 'Híbrida'] &&
+      isStringBetween(data.scheduledAt, 10, 40) &&
+      data.durationMinutes is number && data.durationMinutes >= 15 && data.durationMinutes <= 480 &&
+      data.status in ['agendada', 'confirmada', 'concluida', 'cancelada'] &&
+      data.meetUri is string && data.meetUri.size() <= 300 &&
+      data.notes is string && data.notes.size() <= 600 &&
+      data.createdAt is timestamp &&
+      data.updatedAt is timestamp;
+    }
+
+    function isValidQuickRequest(data) {
+      return data.keys().hasAll([
+        'authorId', 'authorName', 'authorStageName', 'authorRegion', 'macroRegion',
+        'title', 'description', 'instrumentNeeded', 'genreContext', 'bpmAndKey',
+        'collabFormat', 'urgency', 'status', 'responseCount', 'createdAt', 'updatedAt'
+      ]) &&
+      data.keys().hasOnly([
+        'authorId', 'authorName', 'authorStageName', 'authorRegion', 'macroRegion',
+        'title', 'description', 'instrumentNeeded', 'genreContext', 'bpmAndKey',
+        'collabFormat', 'urgency', 'status', 'responseCount', 'createdAt', 'updatedAt'
+      ]) &&
+      isValidId(data.authorId) &&
+      isStringBetween(data.authorName, 2, 80) &&
+      isStringBetween(data.authorStageName, 2, 80) &&
+      isStringBetween(data.authorRegion, 2, 60) &&
+      data.macroRegion in ['Norte', 'Nordeste', 'Centro-Oeste', 'Sudeste', 'Sul', 'Remoto / Global'] &&
+      isStringBetween(data.title, 4, 120) &&
+      isStringBetween(data.description, 10, 500) &&
+      isStringBetween(data.instrumentNeeded, 2, 60) &&
+      isStringBetween(data.genreContext, 2, 60) &&
+      data.bpmAndKey is string && data.bpmAndKey.size() <= 60 &&
+      data.collabFormat in ['Remoto', 'Presencial', 'Híbrido'] &&
+      data.urgency in ['Hoje / Urgente', 'Esta semana', 'Sem pressa'] &&
+      data.status in ['aberto', 'em_andamento', 'resolvido'] &&
+      data.responseCount is number && data.responseCount >= 0 && data.responseCount <= 500 &&
+      data.createdAt is timestamp &&
+      data.updatedAt is timestamp;
+    }
+
+    // --- Collection Rules ---
+
+    // 1. Public musician directory (PII-free)
+    match /musicians/{musicianId} {
+      allow get: if isValidId(musicianId) && (
+        existing().isPublished == true ||
+        (isSignedIn() && existing().ownerId == request.auth.uid)
+      );
+      allow list: if existing().isPublished == true || (
+        isSignedIn() && existing().ownerId == request.auth.uid
+      );
+      allow create: if isVerifiedUser() &&
+        isValidId(musicianId) &&
+        isValidMusician(incoming()) &&
+        incoming().ownerId == request.auth.uid &&
+        incoming().createdAt == request.time &&
+        incoming().updatedAt == request.time;
+      allow update: if isVerifiedUser() &&
+        isValidId(musicianId) &&
+        isValidMusician(incoming()) &&
+        existing().ownerId == request.auth.uid &&
+        incoming().ownerId == existing().ownerId &&
+        incoming().createdAt == existing().createdAt &&
+        incoming().updatedAt == request.time &&
+        incoming().diff(existing()).affectedKeys().hasOnly([
+          'name', 'stageName', 'region', 'macroRegion',
+          'genres', 'instruments', 'experienceLevel', 'collabFormat',
+          'availability', 'bio', 'dawSetup', 'lookingFor', 'avatarUrl',
+          'openToCrossNiche', 'isPublished', 'updatedAt'
+        ]);
+      allow delete: if isVerifiedUser() &&
+        isValidId(musicianId) &&
+        existing().ownerId == request.auth.uid;
+    }
+
+    // 2. Private user PII isolation
+    match /users/{userId}/private/{docId} {
+      allow get: if isValidId(userId) && isValidId(docId) && isOwner(userId) && isVerifiedUser();
+      allow list: if isOwner(userId) && isVerifiedUser() && existing().uid == request.auth.uid;
+      allow create: if isValidId(userId) && isValidId(docId) &&
+        isOwner(userId) && isVerifiedUser() &&
+        isValidPrivateUser(incoming()) &&
+        incoming().uid == request.auth.uid &&
+        incoming().updatedAt == request.time;
+      allow update: if isValidId(userId) && isValidId(docId) &&
+        isOwner(userId) && isVerifiedUser() &&
+        isValidPrivateUser(incoming()) &&
+        incoming().uid == existing().uid &&
+        incoming().updatedAt == request.time &&
+        incoming().diff(existing()).affectedKeys().hasOnly(['email', 'displayName', 'updatedAt']);
+      allow delete: if isValidId(userId) && isValidId(docId) && isOwner(userId) && isVerifiedUser();
+    }
+
+    // 3. Conversations & Messages
+    match /conversations/{conversationId} {
+      allow get: if isSignedIn() && isValidId(conversationId) && request.auth.uid in existing().participantIds;
+      allow list: if isSignedIn() && request.auth.uid in existing().participantIds;
+      allow create: if isVerifiedUser() &&
+        isValidId(conversationId) &&
+        isValidConversation(incoming()) &&
+        incoming().creatorId == request.auth.uid &&
+        request.auth.uid in incoming().participantIds &&
+        incoming().createdAt == request.time &&
+        incoming().updatedAt == request.time;
+      allow update: if isVerifiedUser() &&
+        isValidId(conversationId) &&
+        isValidConversation(incoming()) &&
+        request.auth.uid in existing().participantIds &&
+        incoming().creatorId == existing().creatorId &&
+        incoming().participantIds == existing().participantIds &&
+        incoming().createdAt == existing().createdAt &&
+        incoming().updatedAt == request.time &&
+        incoming().diff(existing()).affectedKeys().hasOnly(['lastMessageText', 'updatedAt', 'title']);
+      allow delete: if isVerifiedUser() &&
+        isValidId(conversationId) &&
+        existing().creatorId == request.auth.uid;
+
+      match /messages/{messageId} {
+        allow get: if isSignedIn() &&
+          isValidId(conversationId) &&
+          isValidId(messageId) &&
+          request.auth.uid in get(/databases/$(database)/documents/conversations/$(conversationId)).data.participantIds;
+        allow list: if isSignedIn() && request.auth.uid in existing().participantIds;
+        allow create: if isVerifiedUser() &&
+          isValidId(conversationId) &&
+          isValidId(messageId) &&
+          isValidMessage(incoming()) &&
+          incoming().conversationId == conversationId &&
+          incoming().senderId == request.auth.uid &&
+          incoming().createdAt == request.time &&
+          exists(/databases/$(database)/documents/conversations/$(conversationId)) &&
+          request.auth.uid in get(/databases/$(database)/documents/conversations/$(conversationId)).data.participantIds &&
+          incoming().participantIds == get(/databases/$(database)/documents/conversations/$(conversationId)).data.participantIds;
+        allow update: if isVerifiedUser() &&
+          isValidId(conversationId) &&
+          isValidId(messageId) &&
+          isValidMessage(incoming()) &&
+          request.auth.uid in existing().participantIds &&
+          incoming().conversationId == existing().conversationId &&
+          incoming().senderId == existing().senderId &&
+          incoming().senderName == existing().senderName &&
+          incoming().participantIds == existing().participantIds &&
+          incoming().body == existing().body &&
+          incoming().createdAt == existing().createdAt &&
+          incoming().diff(existing()).affectedKeys().hasOnly(['emailedToGmail']);
+        allow delete: if false;
+      }
+    }
+
+    // 4. Collaboration Sessions (Action-based + Terminal State Locking)
+    match /sessions/{sessionId} {
+      allow get: if isSignedIn() && isValidId(sessionId) && request.auth.uid in existing().participantIds;
+      allow list: if isSignedIn() && request.auth.uid in existing().participantIds;
+      allow create: if isVerifiedUser() &&
+        isValidId(sessionId) &&
+        isValidSession(incoming()) &&
+        incoming().hostId == request.auth.uid &&
+        request.auth.uid in incoming().participantIds &&
+        incoming().status == 'agendada' &&
+        incoming().createdAt == request.time &&
+        incoming().updatedAt == request.time;
+      allow update: if isVerifiedUser() &&
+        isValidId(sessionId) &&
+        isValidSession(incoming()) &&
+        !(existing().status in ['concluida', 'cancelada']) &&
+        incoming().hostId == existing().hostId &&
+        incoming().createdAt == existing().createdAt &&
+        incoming().updatedAt == request.time &&
+        (
+          (
+            existing().hostId == request.auth.uid &&
+            incoming().diff(existing()).affectedKeys().hasOnly([
+              'title', 'format', 'scheduledAt', 'durationMinutes', 'status', 'meetUri', 'notes', 'updatedAt'
+            ])
+          ) ||
+          (
+            request.auth.uid in existing().participantIds &&
+            incoming().diff(existing()).affectedKeys().hasOnly(['status', 'updatedAt']) &&
+            incoming().status in ['confirmada', 'cancelada']
+          )
+        );
+      allow delete: if isVerifiedUser() &&
+        isValidId(sessionId) &&
+        existing().hostId == request.auth.uid;
+    }
+
+    // 5. Community Quick Requests Board (PII-free + Action-based + Terminal Locking)
+    match /quickRequests/{requestId} {
+      allow get: if isValidId(requestId);
+      allow list: if existing().status in ['aberto', 'em_andamento', 'resolvido'];
+      allow create: if isVerifiedUser() &&
+        isValidId(requestId) &&
+        isValidQuickRequest(incoming()) &&
+        incoming().authorId == request.auth.uid &&
+        incoming().status == 'aberto' &&
+        incoming().responseCount == 0 &&
+        incoming().createdAt == request.time &&
+        incoming().updatedAt == request.time;
+      allow update: if isVerifiedUser() &&
+        isValidId(requestId) &&
+        isValidQuickRequest(incoming()) &&
+        existing().status != 'resolvido' &&
+        incoming().authorId == existing().authorId &&
+        incoming().createdAt == existing().createdAt &&
+        incoming().updatedAt == request.time &&
+        (
+          (
+            existing().authorId == request.auth.uid &&
+            incoming().diff(existing()).affectedKeys().hasOnly([
+              'title', 'description', 'instrumentNeeded', 'genreContext',
+              'bpmAndKey', 'collabFormat', 'urgency', 'status', 'updatedAt'
+            ])
+          ) ||
+          (
+            incoming().diff(existing()).affectedKeys().hasOnly(['responseCount', 'status', 'updatedAt']) &&
+            incoming().responseCount == existing().responseCount + 1 &&
+            incoming().status in ['aberto', 'em_andamento']
+          )
+        );
+      allow delete: if isVerifiedUser() &&
+        isValidId(requestId) &&
+        existing().authorId == request.auth.uid;
+    }
+
+    // 6. Connection test document
+    match /test/connection {
+      allow get: if true;
+    }
+  }
+}

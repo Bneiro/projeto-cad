@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Elo Sonoro — Rede de Colaboração Musical</title>
+    <meta name="description" content="Plataforma de colaboração em rede para conectar músicos independentes por região, gênero e instrumento, com chat em tempo real, agendamento de sessões e envio para Gmail." />
+    <meta property="og:title" content="Elo Sonoro — Rede de Colaboração Musical" />
+    <meta property="og:description" content="Conecte músicos independentes fora do nicho habitual com filtros musicais, chat em tempo real e agendamento integrado ao Google Workspace." />
+    <meta property="og:type" content="website" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@500;600;700&family=JetBrains+Mono:wght@400;500&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
+    <script>
+      (function () {
+        try {
+          var stored = localStorage.getItem('elo_sonoro_theme');
+          var isDark =
+            stored === 'dark' ||
+            (stored !== 'light' &&
+              window.matchMedia &&
+              window.matchMedia('(prefers-color-scheme: dark)').matches);
+          if (isDark) {
+            document.documentElement.classList.add('dark');
+            document.documentElement.style.colorScheme = 'dark';
+          }
+        } catch (e) {}
+      })();
+    </script>
+  </head>
+  <body class="bg-slate-50 text-slate-900 dark:bg-slate-950 dark:text-slate-100 antialiased selection:bg-blue-700 selection:text-white transition-colors duration-200">
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
+

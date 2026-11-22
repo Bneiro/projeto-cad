@@ -1,0 +1,219 @@
+{
+  "entities": {
+    "MusicianProfile": {
+      "title": "MusicianProfile",
+      "description": "Public, PII-free profile of an independent musician on the collaboration network.",
+      "type": "object",
+      "properties": {
+        "ownerId": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "name": { "type": "string", "minLength": 2, "maxLength": 80 },
+        "stageName": { "type": "string", "minLength": 2, "maxLength": 80 },
+        "region": { "type": "string", "minLength": 2, "maxLength": 60 },
+        "macroRegion": {
+          "type": "string",
+          "enum": ["Norte", "Nordeste", "Centro-Oeste", "Sudeste", "Sul", "Remoto / Global"]
+        },
+        "genres": { "type": "array" },
+        "instruments": { "type": "array" },
+        "experienceLevel": {
+          "type": "string",
+          "enum": ["Emergente", "Intermediário", "Profissional", "Produtor / Diretor"]
+        },
+        "collabFormat": {
+          "type": "string",
+          "enum": ["Remoto", "Presencial", "Híbrido"]
+        },
+        "availability": { "type": "string", "minLength": 2, "maxLength": 80 },
+        "bio": { "type": "string", "minLength": 10, "maxLength": 500 },
+        "dawSetup": { "type": "string", "minLength": 2, "maxLength": 120 },
+        "lookingFor": { "type": "string", "minLength": 2, "maxLength": 200 },
+        "avatarUrl": { "type": "string", "maxLength": 300 },
+        "openToCrossNiche": { "type": "boolean" },
+        "isPublished": { "type": "boolean" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": [
+        "ownerId",
+        "name",
+        "stageName",
+        "region",
+        "macroRegion",
+        "genres",
+        "instruments",
+        "experienceLevel",
+        "collabFormat",
+        "availability",
+        "bio",
+        "dawSetup",
+        "lookingFor",
+        "avatarUrl",
+        "openToCrossNiche",
+        "isPublished",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "UserPrivateProfile": {
+      "title": "UserPrivateProfile",
+      "description": "Strictly private PII record (email and notification metadata) isolated per user.",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "email": { "type": "string", "minLength": 3, "maxLength": 160 },
+        "displayName": { "type": "string", "minLength": 1, "maxLength": 80 },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["uid", "email", "updatedAt"]
+    },
+    "Conversation": {
+      "title": "Conversation",
+      "description": "Real-time collaboration conversation room between musicians.",
+      "type": "object",
+      "properties": {
+        "creatorId": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "participantIds": { "type": "array" },
+        "title": { "type": "string", "minLength": 2, "maxLength": 120 },
+        "lastMessageText": { "type": "string", "maxLength": 500 },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["creatorId", "participantIds", "title", "lastMessageText", "createdAt", "updatedAt"]
+    },
+    "ChatMessage": {
+      "title": "ChatMessage",
+      "description": "Message inside a collaboration conversation.",
+      "type": "object",
+      "properties": {
+        "conversationId": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "senderId": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "senderName": { "type": "string", "minLength": 1, "maxLength": 80 },
+        "participantIds": { "type": "array" },
+        "body": { "type": "string", "minLength": 1, "maxLength": 2000 },
+        "emailedToGmail": { "type": "boolean" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["conversationId", "senderId", "senderName", "participantIds", "body", "createdAt"]
+    },
+    "CollabSession": {
+      "title": "CollabSession",
+      "description": "Scheduled jam, rehearsal, or remote recording session with optional Google Meet link.",
+      "type": "object",
+      "properties": {
+        "hostId": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "hostName": { "type": "string", "minLength": 1, "maxLength": 80 },
+        "participantIds": { "type": "array" },
+        "participantNames": { "type": "array" },
+        "title": { "type": "string", "minLength": 2, "maxLength": 120 },
+        "format": {
+          "type": "string",
+          "enum": ["Remota (Google Meet)", "Presencial", "Híbrida"]
+        },
+        "scheduledAt": { "type": "string", "minLength": 10, "maxLength": 40 },
+        "durationMinutes": { "type": "number" },
+        "status": {
+          "type": "string",
+          "enum": ["agendada", "confirmada", "concluida", "cancelada"]
+        },
+        "meetUri": { "type": "string", "maxLength": 300 },
+        "notes": { "type": "string", "maxLength": 600 },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": [
+        "hostId",
+        "hostName",
+        "participantIds",
+        "participantNames",
+        "title",
+        "format",
+        "scheduledAt",
+        "durationMinutes",
+        "status",
+        "meetUri",
+        "notes",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "QuickRequest": {
+      "title": "QuickRequest",
+      "description": "PII-free community open collaboration request posted on the quick request bulletin board.",
+      "type": "object",
+      "properties": {
+        "authorId": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "authorName": { "type": "string", "minLength": 2, "maxLength": 80 },
+        "authorStageName": { "type": "string", "minLength": 2, "maxLength": 80 },
+        "authorRegion": { "type": "string", "minLength": 2, "maxLength": 60 },
+        "macroRegion": {
+          "type": "string",
+          "enum": ["Norte", "Nordeste", "Centro-Oeste", "Sudeste", "Sul", "Remoto / Global"]
+        },
+        "title": { "type": "string", "minLength": 4, "maxLength": 120 },
+        "description": { "type": "string", "minLength": 10, "maxLength": 500 },
+        "instrumentNeeded": { "type": "string", "minLength": 2, "maxLength": 60 },
+        "genreContext": { "type": "string", "minLength": 2, "maxLength": 60 },
+        "bpmAndKey": { "type": "string", "maxLength": 60 },
+        "collabFormat": {
+          "type": "string",
+          "enum": ["Remoto", "Presencial", "Híbrido"]
+        },
+        "urgency": {
+          "type": "string",
+          "enum": ["Hoje / Urgente", "Esta semana", "Sem pressa"]
+        },
+        "status": {
+          "type": "string",
+          "enum": ["aberto", "em_andamento", "resolvido"]
+        },
+        "responseCount": { "type": "number" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": [
+        "authorId",
+        "authorName",
+        "authorStageName",
+        "authorRegion",
+        "macroRegion",
+        "title",
+        "description",
+        "instrumentNeeded",
+        "genreContext",
+        "bpmAndKey",
+        "collabFormat",
+        "urgency",
+        "status",
+        "responseCount",
+        "createdAt",
+        "updatedAt"
+      ]
+    }
+  },
+  "firestore": {
+    "/musicians/{musicianId}": {
+      "schema": { "$ref": "#/entities/MusicianProfile" },
+      "description": "Public musician directory cards without PII."
+    },
+    "/users/{userId}/private/{docId}": {
+      "schema": { "$ref": "#/entities/UserPrivateProfile" },
+      "description": "Isolated private user PII (email, display settings)."
+    },
+    "/conversations/{conversationId}": {
+      "schema": { "$ref": "#/entities/Conversation" },
+      "description": "Conversation threads between musicians."
+    },
+    "/conversations/{conversationId}/messages/{messageId}": {
+      "schema": { "$ref": "#/entities/ChatMessage" },
+      "description": "Messages belonging to a conversation thread."
+    },
+    "/sessions/{sessionId}": {
+      "schema": { "$ref": "#/entities/CollabSession" },
+      "description": "Scheduled collaboration sessions."
+    },
+    "/quickRequests/{requestId}": {
+      "schema": { "$ref": "#/entities/QuickRequest" },
+      "description": "Public PII-free community board of quick collaboration requests."
+    }
+  }
+}

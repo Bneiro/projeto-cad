@@ -1,0 +1,6 @@
+{
+  "name": "Elo Sonoro — Rede de Colaboração Musical",
+  "description": "Plataforma de colaboração em rede para conectar músicos independentes por região, gênero e instrumento, com chat em tempo real, agendamento de sessões e integração com Gmail, Google Meet, Google Tasks e Contatos.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
